@@ -66,7 +66,7 @@ class RegisterFragment : Fragment() {
 
     private fun validateUserInput(): Pair<Boolean, String> {
         val userRequest = getUserRequest()
-        return authViewModel.validateCredentials(userRequest.username, userRequest.email, userRequest.password)
+        return authViewModel.validateCredentials(userRequest.username, userRequest.email, userRequest.password, true)
     }
 
     private fun bindObservers() {
