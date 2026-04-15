@@ -55,7 +55,7 @@
             android:fontFamily="@font/sf_pro_display_semibold"
             android:hint="@string/txt_email_hint"
             android:inputType="textEmailAddress"
-            android:textColor="@color/black"
+            android:textColor="@color/white"
             android:textColorHint="@color/light_gray"
             android:textSize="16sp" />
 
@@ -83,7 +83,7 @@
             android:fontFamily="@font/sf_pro_display_semibold"
             android:hint="@string/txt_password_hint"
             android:inputType="textPassword"
-            android:textColor="@color/black"
+            android:textColor="@color/white"
             android:textColorHint="@color/light_gray"
             android:textSize="16sp" />
 
@@ -100,8 +100,19 @@
             android:layout_marginTop="20dp"
             android:fontFamily="@font/sf_pro_display_regular"
             android:text=""
-            android:textColor="@color/light_gray"
+            android:textColor="@color/highlight_text_color"
             android:textSize="12sp" />
+
+
+
+        <ProgressBar
+            android:id="@+id/progressBar"
+            style="?android:attr/progressBarStyle"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_gravity="center"
+            android:visibility="gone" />
+
 
         <Button
             android:id="@+id/btn_login"

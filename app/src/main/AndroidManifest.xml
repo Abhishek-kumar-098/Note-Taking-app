@@ -9,9 +9,9 @@
         android:allowBackup="true"
         android:dataExtractionRules="@xml/data_extraction_rules"
         android:fullBackupContent="@xml/backup_rules"
-        android:icon="@drawable/images__1_"
+        android:icon="@drawable/logo123"
         android:label="NotesApp"
-        android:roundIcon="@drawable/images__1_"
+        android:roundIcon="@drawable/logo123"
         android:supportsRtl="true"
         android:theme="@style/Theme.NoteTakingApp">
         <activity

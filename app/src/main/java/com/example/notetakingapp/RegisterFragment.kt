@@ -12,9 +12,9 @@ import androidx.navigation.fragment.findNavController
 import com.example.notetakingapp.databinding.FragmentRegisterBinding
 import com.example.notetakingapp.models.UserRequest
 import com.example.notetakingapp.utils.NetworkResult
+import com.example.notetakingapp.utils.TokenManager
 import dagger.hilt.android.AndroidEntryPoint
-
-
+import javax.inject.Inject
 
 @AndroidEntryPoint
 class RegisterFragment : Fragment() {
@@ -23,15 +23,18 @@ class RegisterFragment : Fragment() {
     private val binding get() = _binding!!
     private val authViewModel by viewModels<AuthViewModel>()
 
-
+    @Inject
+    lateinit var tokenManager: TokenManager
 
     override fun onCreateView(
         inflater: LayoutInflater, container: ViewGroup?,
         savedInstanceState: Bundle?
     ): View? {
-
         _binding = FragmentRegisterBinding.inflate(inflater, container, false)
 
+        if (tokenManager.getToken() != null) {
+            findNavController().navigate(R.id.action_registerFragment_to_mainFragment)
+        }
 
         return binding.root
     }
@@ -54,7 +57,6 @@ class RegisterFragment : Fragment() {
         }
 
         bindObservers()
-
     }
 
     private fun getUserRequest(): UserRequest {
@@ -66,14 +68,15 @@ class RegisterFragment : Fragment() {
 
     private fun validateUserInput(): Pair<Boolean, String> {
         val userRequest = getUserRequest()
-        return authViewModel.validateCredentials(userRequest.username, userRequest.email, userRequest.password, true)
+        return authViewModel.validateCredentials(userRequest.username, userRequest.email, userRequest.password, false)
     }
 
     private fun bindObservers() {
-        authViewModel.userResponseLiveData.observe(viewLifecycleOwner, Observer{
-            binding.txtError.text = "" // Clear previous errors
-            when(it){
+        authViewModel.userResponseLiveData.observe(viewLifecycleOwner, Observer {
+            binding.progressBar.isVisible = false
+            when(it) {
                 is NetworkResult.Success -> {
+                    tokenManager.saveToken(it.data!!.token)
                     findNavController().navigate(R.id.action_registerFragment_to_mainFragment)
                 }
                 is NetworkResult.Error -> {
@@ -81,8 +84,6 @@ class RegisterFragment : Fragment() {
                 }
                 is NetworkResult.Loading -> {
                     binding.progressBar.isVisible = true
-                    // Note: Ensure progressBar exists in your layout if you want to use it
-                    // binding.progressBar.isVisible = true
                 }
             }
         })
@@ -92,5 +93,4 @@ class RegisterFragment : Fragment() {
         super.onDestroyView()
         _binding = null
     }
-
 }

@@ -9,12 +9,12 @@ import androidx.core.view.isVisible
 import androidx.fragment.app.viewModels
 import androidx.lifecycle.Observer
 import androidx.navigation.fragment.findNavController
-import androidx.room.ForeignKey
 import com.example.notetakingapp.databinding.FragmentLoginBinding
 import com.example.notetakingapp.models.UserRequest
 import com.example.notetakingapp.utils.NetworkResult
+import com.example.notetakingapp.utils.TokenManager
 import dagger.hilt.android.AndroidEntryPoint
-import kotlin.getValue
+import javax.inject.Inject
 
 @AndroidEntryPoint
 class LoginFragment : Fragment() {
@@ -22,22 +22,26 @@ class LoginFragment : Fragment() {
     private val binding get() =_binding!!
     private val authViewModel by viewModels<AuthViewModel>()
 
+    @Inject
+    lateinit var tokenManager: TokenManager
 
+    override fun onCreateView(inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?): View? {
+        _binding = FragmentLoginBinding.inflate(inflater, container, false)
+        return binding.root
+    }
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
-
-        binding.btnSignUp.setOnClickListener {
+        binding.btnLogin.setOnClickListener {
             val validationResult = validateUserInput()
             if (validationResult.first) {
-                authViewModel.registerUser(getUserRequest())
+                authViewModel.loginUser(getUserRequest())
             } else {
                 binding.txtError.text = validationResult.second
             }
         }
-
-        binding.btnLogin.setOnClickListener {
-            findNavController().navigate(R.id.action_registerFragment_to_loginFragment)
+        binding.btnSignUp.setOnClickListener {
+            findNavController().popBackStack()
         }
 
         bindObservers()
@@ -51,23 +55,22 @@ class LoginFragment : Fragment() {
 
     private fun validateUserInput(): Pair<Boolean, String> {
         val userRequest = getUserRequest()
-        return authViewModel.validateCredentials(userRequest.username, userRequest.email, userRequest.password)
+        return authViewModel.validateCredentials(userRequest.username, userRequest.email, userRequest.password, true)
     }
 
     private fun bindObservers() {
-        authViewModel.userResponseLiveData.observe(viewLifecycleOwner, Observer{
-            binding.txtError.text = "" // Clear previous errors
-            when(it){
+        authViewModel.userResponseLiveData.observe(viewLifecycleOwner, Observer {
+            binding.progressBar.isVisible = false
+            when(it) {
                 is NetworkResult.Success -> {
-                    findNavController().navigate(R.id.action_registerFragment_to_mainFragment)
+                    tokenManager.saveToken(it.data!!.token)
+                    findNavController().navigate(R.id.action_loginFragment_to_mainFragment)
                 }
                 is NetworkResult.Error -> {
                     binding.txtError.text = it.message
                 }
                 is NetworkResult.Loading -> {
                     binding.progressBar.isVisible = true
-                    // Note: Ensure progressBar exists in your layout if you want to use it
-                    // binding.progressBar.isVisible = true
                 }
             }
         })
@@ -77,5 +80,4 @@ class LoginFragment : Fragment() {
         super.onDestroyView()
         _binding = null
     }
-
 }

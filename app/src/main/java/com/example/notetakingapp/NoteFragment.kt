@@ -5,16 +5,116 @@ import androidx.fragment.app.Fragment
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
+import android.widget.Toast
+import androidx.core.view.isVisible
+import androidx.fragment.app.viewModels
+import androidx.navigation.fragment.findNavController
+import com.example.notetakingapp.databinding.FragmentNoteBinding
+import com.example.notetakingapp.models.NoteRequest
+import com.example.notetakingapp.models.NoteResponse
+import com.example.notetakingapp.utils.NetworkResult
+import com.google.gson.Gson
+import dagger.hilt.android.AndroidEntryPoint
 
-
+@AndroidEntryPoint
 class NoteFragment : Fragment() {
+
+    private var _binding: FragmentNoteBinding? = null
+    private val binding get() = _binding!!
+    private val noteViewModel by viewModels<NoteViewModel>()
+    private var note: NoteResponse? = null
+
 
     override fun onCreateView(
         inflater: LayoutInflater, container: ViewGroup?,
         savedInstanceState: Bundle?
     ): View? {
-        // Inflate the layout for this fragment
-        return inflater.inflate(R.layout.fragment_note, container, false)
+        _binding = FragmentNoteBinding.inflate(inflater, container, false)
+        return binding.root
+    }
+
+
+    override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
+        super.onViewCreated(view, savedInstanceState)
+        setIntialData()
+        bindHandlers()
+        bindObservers()
+    }
+
+
+    private fun bindObservers() {
+        noteViewModel.statusLiveData.observe(viewLifecycleOwner) {
+            when (it) {
+                is NetworkResult.Success -> {
+                    Toast.makeText(requireContext(), it.data, Toast.LENGTH_SHORT).show()
+                    findNavController().popBackStack()
+                }
+
+                is NetworkResult.Error -> {
+                    Toast.makeText(requireContext(), it.message, Toast.LENGTH_SHORT).show()
+                }
+
+                is NetworkResult.Loading -> {
+
+                }
+            }
+        }
+    }
+
+
+    private fun bindHandlers() {
+        binding.btnDelete.setOnClickListener {
+            note?.let { noteViewModel.deleteNote(it._id) }
+        }
+        binding.btnSubmit.setOnClickListener {
+            val title = binding.txtTitle.text.toString().trim()
+            val description = binding.txtDescription.text.toString().trim()
+
+            if (validateInput(title, description)) {
+                val noteRequest = NoteRequest(description, title)
+                if (note == null) {
+                    noteViewModel.createNote(noteRequest)
+                } else {
+                    noteViewModel.updateNote(note!!._id, noteRequest)
+                }
+            }
+        }
+    }
+
+    private fun validateInput(title: String, description: String): Boolean {
+        return when {
+            title.isEmpty() -> {
+                Toast.makeText(requireContext(), "Title is required", Toast.LENGTH_SHORT).show()
+                false
+            }
+            description.isEmpty() -> {
+                Toast.makeText(requireContext(), "Description is required", Toast.LENGTH_SHORT).show()
+                false
+            }
+            else -> true
+        }
+    }
+
+    private fun setIntialData() {
+        val jsonNote = arguments?.getString("note")
+        if (jsonNote != null) {
+            note = Gson().fromJson(jsonNote, NoteResponse::class.java)
+            note?.let {
+                binding.addEditText.text = "Edit Note"
+                binding.txtTitle.setText(it.title)
+                binding.txtDescription.setText(it.description)
+            }
+        } else {
+            binding.addEditText.text = "Add Note"
+            binding.btnDelete.isVisible = false
+            binding.txtTitle.setText("")
+            binding.txtDescription.setText("")
+        }
+    }
+
+    override fun onDestroyView() {
+        super.onDestroyView()
+        _binding = null
     }
 
 }
