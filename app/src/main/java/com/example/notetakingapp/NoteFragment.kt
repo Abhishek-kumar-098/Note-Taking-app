@@ -46,7 +46,7 @@ class NoteFragment : Fragment() {
         noteViewModel.statusLiveData.observe(viewLifecycleOwner) {
             when (it) {
                 is NetworkResult.Success -> {
-                    Toast.makeText(requireContext(), it.data, Toast.LENGTH_SHORT).show()
+                    Toast.makeText(requireContext(),it.data.toString(), Toast.LENGTH_SHORT).show()
                     findNavController().popBackStack()
                 }
 

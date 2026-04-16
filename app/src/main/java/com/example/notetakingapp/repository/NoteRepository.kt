@@ -1,5 +1,6 @@
 package com.example.notetakingapp.repository
 
+import android.util.Log
 import androidx.lifecycle.LiveData
 import androidx.lifecycle.MutableLiveData
 import com.example.notetakingapp.api.NotesAPI
@@ -10,81 +11,111 @@ import org.json.JSONObject
 import retrofit2.Response
 import javax.inject.Inject
 
+
 class NoteRepository @Inject constructor(private val notesAPI: NotesAPI) {
 
     private val _notesLiveData = MutableLiveData<NetworkResult<List<NoteResponse>>>()
-    val notesLiveData: LiveData<NetworkResult<List<NoteResponse>>>
+    val notesLiveData : LiveData<NetworkResult<List<NoteResponse>>>
         get() = _notesLiveData
 
-    private val _statusLiveData = MutableLiveData<NetworkResult<String>>()
-    val statusLiveData: LiveData<NetworkResult<String>>
+    private val _statusLiveData = MutableLiveData<NetworkResult<Pair<Boolean, String>>>()
+    val statusLiveData : LiveData<NetworkResult<Pair<Boolean, String>>>
         get() = _statusLiveData
 
-    suspend fun getNotes() {
+
+    suspend fun getNotes(){
         _notesLiveData.postValue(NetworkResult.Loading())
-        try {
-            val response = notesAPI.getNotes()
-            if (response.isSuccessful && response.body() != null) {
-                _notesLiveData.postValue(NetworkResult.Success(response.body()!!))
-            } else {
-                handleError(_notesLiveData, response)
+        val response = notesAPI.getNotes()
+        if(response.isSuccessful && response.body() != null){
+            _notesLiveData.postValue(NetworkResult.Success(response.body()!!))
+        }
+//        else if (response.errorBody() != null){
+//            val errorObj = JSONObject(response.errorBody()!!.charStream().readText())
+//            _notesLiveData.postValue(NetworkResult.Error(errorObj.getString("message")))
+//        }
+        else if (response.errorBody() != null){
+            val errorText = response.errorBody()!!.string()
+
+            try {
+                val errorObj = JSONObject(errorText)
+                _notesLiveData.postValue(NetworkResult.Error(errorObj.getString("message")))
+            } catch (e: Exception) {
+                _notesLiveData.postValue(NetworkResult.Error("Server error: $errorText"))
             }
-        } catch (e: Exception) {
-            _notesLiveData.postValue(NetworkResult.Error(e.message ?: "Something went wrong"))
+        }
+        else{
+            _notesLiveData.postValue(NetworkResult.Error("Something went wrong"))
         }
     }
-
-    suspend fun createNote(noteRequest: NoteRequest) {
+    suspend fun createNote(noteRequest: NoteRequest){
         _statusLiveData.postValue(NetworkResult.Loading())
-        try {
-            val response = notesAPI.createNote(noteRequest)
-            handleResponse(response, "Note Created")
-        } catch (e: Exception) {
-            _statusLiveData.postValue(NetworkResult.Error(e.message ?: "Something went wrong"))
-        }
+        val response = notesAPI.createNote(noteRequest)
+        handleResponse(response, "Note Created")
+
     }
 
-    suspend fun deleteNote(noteId: String) {
+
+//    suspend fun createNote(noteRequest: NoteRequest){
+//        _statusLiveData.postValue(NetworkResult.Loading())
+//
+//        val response = notesAPI.createNote(noteRequest)
+//
+//        Log.d("API_DEBUG", "STATUS CODE: ${response.code()}")
+//        Log.d("API_DEBUG", "IS SUCCESSFUL: ${response.isSuccessful}")
+//
+//        response.body()?.let {
+//            Log.d("API_DEBUG", "SUCCESS BODY: $it")
+//        }
+//
+//        response.errorBody()?.let {
+//            val errorText = it.string()
+//            Log.d("API_DEBUG", "ERROR BODY: $errorText")
+//        }
+//
+//        handleResponse(response, "Note Created")
+//    }
+
+//    suspend fun deleteNote(noteId: String){
+//        _statusLiveData.postValue(NetworkResult.Loading())
+//        val response = notesAPI.deleteNote(noteId)
+//        handleResponse(response, "Note Deleted")
+//    }
+
+    suspend fun deleteNote(noteId: String){
         _statusLiveData.postValue(NetworkResult.Loading())
-        try {
-            val response = notesAPI.deleteNote(noteId)
-            handleResponse(response, "Note Deleted")
-        } catch (e: Exception) {
-            _statusLiveData.postValue(NetworkResult.Error(e.message ?: "Something went wrong"))
+
+        Log.d("API_DEBUG", "DELETE REQUEST ID: $noteId")
+
+        val response = notesAPI.deleteNote(noteId)
+
+        Log.d("API_DEBUG", "STATUS CODE: ${response.code()}")
+        Log.d("API_DEBUG", "IS SUCCESSFUL: ${response.isSuccessful}")
+
+        response.body()?.let {
+            Log.d("API_DEBUG", "SUCCESS BODY: $it")
         }
+
+        response.errorBody()?.let {
+            val errorText = it.string()
+            Log.d("API_DEBUG", "ERROR BODY: $errorText")
+        }
+
+        handleResponse(response, "Note Deleted")
     }
 
-    suspend fun updateNote(noteId: String, noteRequest: NoteRequest) {
+
+    suspend fun updateNote(noteId: String, noteRequest: NoteRequest){
         _statusLiveData.postValue(NetworkResult.Loading())
-        try {
-            val response = notesAPI.updateNote(noteId, noteRequest)
-            handleResponse(response, "Note Updated")
-        } catch (e: Exception) {
-            _statusLiveData.postValue(NetworkResult.Error(e.message ?: "Something went wrong"))
-        }
+        val response = notesAPI.updateNote(noteId, noteRequest)
+        handleResponse(response, "Note Updated")
     }
-
     private fun handleResponse(response: Response<NoteResponse>, message: String) {
         if (response.isSuccessful && response.body() != null) {
-            _statusLiveData.postValue(NetworkResult.Success(message))
+            _statusLiveData.postValue(NetworkResult.Success(Pair(true, message)))
         } else {
-            val errorMsg = response.errorBody()?.string()
-            val errorMessage = try {
-                JSONObject(errorMsg ?: "").getString("message")
-            } catch (e: Exception) {
-                "Something went wrong"
-            }
-            _statusLiveData.postValue(NetworkResult.Error(errorMessage))
+            _statusLiveData.postValue(NetworkResult.Error("Something went wrong"))
         }
     }
 
-    private fun <T> handleError(mutableLiveData: MutableLiveData<NetworkResult<T>>, response: Response<*>) {
-        val errorMsg = response.errorBody()?.string()
-        val message = try {
-            JSONObject(errorMsg ?: "").getString("message")
-        } catch (e: Exception) {
-            "Something went wrong"
-        }
-        mutableLiveData.postValue(NetworkResult.Error(message))
-    }
+
 }
